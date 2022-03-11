@@ -62,11 +62,12 @@ class UIConfig:
     height: int
     width: int
     scale: float
-    dpi: int = 80
+    dpi: int
+    font_size: float
+    default_category: str
     font: FontProperties = FontProperties(
         family=["sans-serif", "monospace"], weight="bold", size=18
     )
-    default_category: str = "car"
 
     # pylint: disable=dangerous-default-value
     def __init__(
@@ -74,16 +75,18 @@ class UIConfig:
         height: int = 720,
         width: int = 1280,
         scale: float = 1.0,
+        font_size:float = 1.0,
         dpi: int = 80,
         weight: str = "bold",
         family: List[str] = ["sans-serif", "monospace"],
     ) -> None:
         """Initialize with default values."""
+        self.font_size = font_size
         self.height = height
         self.width = width
         self.scale = scale
         self.dpi = dpi
-        self.font.set_size(int(18 * scale))
+        self.font.set_size(int(18 * self.font_size))
         self.font.set_weight(weight)
         self.font.set_family(family)
 
@@ -286,14 +289,22 @@ class LabelViewer:
         )
 
     def _draw_label_attributes(
-        self, label: Label, x_coord: float, y_coord: float
+        self, label: Label, x_coord: float, y_coord: float, color, show_type='class',
     ) -> None:
         """Visualize attribute infomation of a label."""
-        text = (
-            label.category
-            if label.category is not None
-            else self.ui_cfg.default_category
-        )
+
+        if show_type == 'class':
+            text = (
+                label.category
+                if label.category is not None
+                else self.ui_cfg.default_category
+            )
+        elif show_type == 'trackid':
+            text = (
+                label.id
+                if label.id is not None
+                else '0'
+            )
         if check_truncated(label):
             text += ",t"
         if check_occluded(label):
@@ -302,34 +313,38 @@ class LabelViewer:
             text += ",c"
         if check_ignored(label):
             text += ",i"
-        if label.score is not None:
+        if label.score is not None and show_type == 'class':
             text += f"{label.score:.2f}"
         self.ax.text(
             x_coord,
             y_coord,
             text,
-            fontsize=int(10 * self.ui_cfg.scale),
+#             color=color,
+            fontsize=int(10 * self.ui_cfg.font_size),
             bbox={
-                "facecolor": "white",
-                "edgecolor": "none",
+                "facecolor": color,
+                "edgecolor": 'none',
                 "alpha": 0.5,
-                "boxstyle": "square,pad=0.1",
+                "boxstyle": "square,pad=0.0",
             },
         )
-
-    def draw_box2ds(self, labels: List[Label], with_tags: bool = True) -> None:
+    def draw_box2ds(self, labels: List[Label], fill=True, with_tags: bool = True, show_type = 'class') -> None:
         """Draw Box2d on the axes."""
         for label in labels:
             if label.box2d is not None:
                 color = self._get_label_color(label).tolist()
                 for result in gen_2d_rect(
-                    label, color, int(2 * self.ui_cfg.scale)
+                    label, color, int(2 * self.ui_cfg.scale), fill=fill
                 ):
                     self.ax.add_patch(result)
 
                 if with_tags:
-                    self._draw_label_attributes(
-                        label, label.box2d.x1, (label.box2d.y1 - 4)
+                       self._draw_label_attributes(
+                        label,
+                        label.box2d.x1,
+                        (label.box2d.y1 - 4),
+                        color,
+                        show_type=show_type
                     )
 
     def draw_box3ds(

@@ -48,7 +48,10 @@ def fetch_image(inputs: Tuple[Frame, str]) -> NDArrayU8:
 
 
 def gen_2d_rect(
-    label: Label, color: List[float], linewidth: int
+    label: Label,
+    color: List[float],
+    linewidth: int,
+    fill: bool
 ) -> List[mpatches.Rectangle]:
     """Generate individual bounding box from 2d label."""
     assert label.box2d is not None
@@ -67,7 +70,7 @@ def gen_2d_rect(
             linewidth=linewidth,
             edgecolor=color + [0.75],
             facecolor=color + [0.25],
-            fill=True,
+            fill=fill,
         )
     ]
 
